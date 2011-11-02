@@ -3,6 +3,7 @@ require 'base64'
 require 'fileutils'
 require 'json'
 require 'engineyard-serverside/rails_asset_support'
+require 'ey_instance_api_client'
 
 begin
   require 'ey_instance_api_client'
