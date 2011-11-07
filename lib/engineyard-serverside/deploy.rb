@@ -260,15 +260,22 @@ WRAP
         run create_revision_file_command
       end
 
+      def services_command_check
+        "which /usr/local/ey_resin/ruby/bin/ey-services-setup"
+      end
+
       def services_setup_command
-        "sudo /usr/local/ey_resin/ruby/bin/ey-services-setup #{config.app}"
+        "/usr/local/ey_resin/ruby/bin/ey-services-setup #{config.app}"
       end
 
       def setup_services
         info "~> Setting up external services."
-        puts "running command: " + services_setup_command.inspect
-        result = run(services_setup_command)
-        puts "command result: " + result.inspect
+        begin
+          sudo(services_command_check)
+        rescue StandardError => e
+          info "Could not setup services. Upgrade your environment to get services configuration."
+        end
+        result = sudo(services_setup_command)
       rescue StandardError => e
         warning <<-WARNING
 External services configuration not updated. Using previous version.

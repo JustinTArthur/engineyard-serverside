@@ -68,6 +68,14 @@ class FullTestDeploy < EY::Serverside::Deploy
     super
   end
 
+  def services_command_check
+    @mock_services_command_check || "which echo"
+  end
+
+  def mock_services_command_check!(value)
+    @mock_services_command_check = value
+  end
+
   def services_setup_command
     @mock_services_setup_command || "echo 'skipped'"
   end
@@ -76,9 +84,6 @@ class FullTestDeploy < EY::Serverside::Deploy
     @mock_services_setup_command = value
   end
 
-  def mock_services_setup_to_break!
-    @mock_services_setup_command = "notarealcommandsoitwillexitnonzero"
-  end
 end
 
 module EY::Serverside::Strategies::IntegrationSpec

@@ -54,10 +54,31 @@ describe "Deploying an application with services" do
       @deployer.infos.should_not be_any { |info| info =~ /WARNING/ }
     end
 
+    describe "followed by a deploy that can't find the command" do
+      before do
+        @deployer = setup_deploy
+        @deployer.mock_services_command_check!("which nonexistatncommand")
+        @deployer.deploy
+      end
+
+      it "silently fails" do
+        @shared_services_file.should exist
+        @shared_services_file.should_not be_symlink
+        @shared_services_file.read.should == "somefilecontents\n"
+
+        @symlinked_services_file.should exist
+        @symlinked_services_file.should be_symlink
+        @shared_services_file.read.should == "somefilecontents\n"
+
+        @deployer.infos.should_not be_any { |info| info =~ /WARNING/ }
+      end
+
+    end
+
     describe "followed by a deploy that fails to fetch services" do
       before do
         @deployer = setup_deploy
-        @deployer.mock_services_setup_to_break!
+        @deployer.mock_services_setup!("notarealcommandsoitwillexitnonzero")
         @deployer.deploy
       end
 
