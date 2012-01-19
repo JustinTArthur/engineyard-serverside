@@ -10,7 +10,8 @@ module EY
         end
 
         def <<(output)
-          output = output.split("\n").map {|e| "#{Time.now.iso8601}: #{e}"}.join("\n")
+          timestamp = Time.now.iso8601
+          output = output.split("\n").map {|e| "#{timestamp}: #{e}"}.join("\n")
           @streams.each do |s|
             s << output
             s.flush
