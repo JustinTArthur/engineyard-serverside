@@ -10,8 +10,6 @@ module EY
         end
 
         def <<(output)
-          timestamp = Time.now.iso8601
-          output = output.split("\n").map {|e| "#{timestamp}: #{e}"}.join("\n")
           @streams.each do |s|
             s << output
             s.flush
@@ -44,18 +42,18 @@ module EY
       end
 
       def warning(msg)
-        info "\nWARNING: #{msg}\n".gsub(/^/,'!> ')
+        info "WARNING: #{msg}\n".gsub(/^/,'!> ')
       end
 
       def info(msg)
         with_logfile do |log|
-          Tee.new($stdout, log) << (msg + "\n")
+          Tee.new($stdout, log) << ("#{with_timestamp(msg)}\n")
         end
       end
 
       def debug(msg)
         with_logfile do |log|
-          log << "#{msg}\n"
+          log << "#{with_timestamp(msg)}\n"
         end
       end
 
@@ -81,6 +79,10 @@ module EY
         EY::Serverside::LoggedOutput.logfile
       end
 
+      def with_timestamp(msg)
+        timestamp = Time.now.iso8601
+        msg.split("\n").map{|e| "#{timestamp}: #{e}"}.join("\n")
+      end
     end
   end
 end
