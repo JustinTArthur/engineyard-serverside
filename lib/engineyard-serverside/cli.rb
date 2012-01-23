@@ -56,7 +56,7 @@ module EY
         EY::Serverside::LoggedOutput.verbose = options[:verbose]
         EY::Serverside::LoggedOutput.logfile = File.join(ENV['HOME'], "#{options[:app]}-deploy.log")
 
-        invoke :propagate
+        propagate
 
         EY::Serverside::Deploy.new(config).send(default_task)
       end
@@ -137,7 +137,7 @@ module EY
 
         EY::Serverside::Server.load_all_from_array(assemble_instance_hashes(config))
 
-        invoke :propagate
+        propagate
 
         EY::Serverside::Server.all.each do |server|
           server.sync_directory app_dir
@@ -183,7 +183,7 @@ module EY
         config = EY::Serverside::Deploy::Configuration.new(options)
         EY::Serverside::Server.load_all_from_array(assemble_instance_hashes(config))
 
-        invoke :propagate
+        propagate
 
         EY::Serverside::Deploy.new(config).restart_with_maintenance_page
       end
@@ -205,31 +205,22 @@ module EY
 
       desc "propagate", "Propagate the engineyard-serverside gem to the other instances in the cluster. This will install exactly version #{EY::Serverside::VERSION}."
       def propagate
-        config          = EY::Serverside::Deploy::Configuration.new
-        gem_filename    = "engineyard-serverside-#{EY::Serverside::VERSION}.gem"
+        name            = "engineyard-serverside"
+        version         = EY::Serverside::VERSION
+        gem_filename    = "#{name}-#{version}.gem"
         local_gem_file  = File.join(Gem.dir, 'cache', gem_filename)
         remote_gem_file = File.join(Dir.tmpdir, gem_filename)
-        gem_binary      = File.join(Gem.default_bindir, 'gem')
 
         servers = EY::Serverside::Server.all.find_all { |server| !server.local? }
 
         futures = EY::Serverside::Future.call(servers) do |server|
-          egrep_escaped_version = EY::Serverside::VERSION.gsub(/\./, '\.')
-          # the [,)] is to stop us from looking for e.g. 0.5.1, seeing
-          # 0.5.11, and mistakenly thinking 0.5.1 is there
-          has_gem_cmd = "#{gem_binary} list engineyard-serverside | grep \"engineyard-serverside\" | egrep -q '#{egrep_escaped_version}[,)]'"
-
-          if !server.run(has_gem_cmd)  # doesn't have this exact version
-            puts "~> Installing engineyard-serverside on #{server.hostname}"
-
-            system(Escape.shell_command([
-              'scp', '-i', "#{ENV['HOME']}/.ssh/internal",
-              "-o", "StrictHostKeyChecking=no",
-              local_gem_file,
-             "#{config.user}@#{server.hostname}:#{remote_gem_file}",
-            ]))
-            server.run("sudo #{gem_binary} install --no-rdoc --no-ri '#{remote_gem_file}'")
+          installed = server.gem?(name, version)
+          unless installed
+            info "~> Installing #{name} on #{server.hostname}"
+            server.copy(local_gem_file, remote_gem_file)
+            installed = server.install_gem(remote_gem_file)
           end
+          installed
         end
 
         EY::Serverside::Future.success?(futures)
